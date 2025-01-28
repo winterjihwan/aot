@@ -18,4 +18,6 @@
 #define COLOR_BLACK (Color){.r = 0, .g = 0, .b = 0}
 #define COLOR_YELLOW (Color){.r = 255, .g = 252, .b = 127}
 
+#define ROUND(n, m) (((n + m / 2) / m) * m)
+
 #endif

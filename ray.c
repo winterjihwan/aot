@@ -31,15 +31,42 @@ static void ray_fill_circle(SDL_Renderer *renderer, Circle *c) {
 static void ray_trace_circle(SDL_Renderer *renderer, Circle *c, Color color) {
   SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 128);
 
-  float angle = M_PI / 8;
-  float i = 0;
+  float a = 60.0 / 360.0;
+  float t = a * 2 * M_PI;
+  float n = 0;
   for (;;) {
-    float x = i * cos(angle);
-    float y = i * sin(angle);
+    float x = c->x + n * cos(t);
+    float y = c->y + n * sin(t);
     if (x < 0 || x >= WINDOW_W || y < 0 || y >= WINDOW_H)
       break;
-    SDL_RenderDrawPoint(renderer, c->x + x, c->y + y);
-    i++;
+    SDL_RenderDrawPoint(renderer, x, y);
+    n++;
+  }
+}
+
+static void ray_trace(SDL_Renderer *renderer, Circle *c, Color color) {
+  SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 128);
+
+  float a = 60.0 / 360.0;
+  float t = a * 2 * M_PI;
+  float x1 = c->x;
+  float y1 = c->y;
+
+  // 2nd quadrant
+  if (0 < a && a < 90) {
+    float x2 = ceil(x1 / 100.0) * 100;
+    float y2 = ceil(y1 / 100.0) * 100;
+    if (fabs(x1 - x2) < fabs(y1 - y2)) {
+      // x2 = x1 + (y2 - y1) / sin(t) * cos(t);
+      float x2 = x1 + (y2 - y1) / sin(t) * cos(t);
+      SDL_RenderDrawRect(renderer,
+                         &(SDL_Rect){.x = x2 - 3, .y = y2 - 3, .w = 6, .h = 6});
+    } else {
+      // y2 = y1 + (x2 - x1) / cos(t) * sin(t)
+      float y2 = y1 + (x2 - x1) / cos(t) * sin(t);
+      SDL_RenderDrawRect(renderer,
+                         &(SDL_Rect){.x = x2 - 3, .y = y2 - 3, .w = 6, .h = 6});
+    }
   }
 }
 
@@ -70,7 +97,8 @@ void ray_render(SDL_Renderer *renderer) {
   ray_render_grid(renderer, COLOR_WHITE);
   ray_render_map(renderer, RAY_MAP);
 
-  Circle c1 = {.x = 50, .y = 100, .r = 10};
+  Circle c1 = {.x = 50, .y = 150, .r = 10};
   ray_fill_circle(renderer, &c1);
   ray_trace_circle(renderer, &c1, COLOR_YELLOW);
+  ray_trace(renderer, &c1, COLOR_YELLOW);
 }
