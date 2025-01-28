@@ -3,8 +3,11 @@
 
 #include "ray.h"
 #include "raylib.h"
+#include <stdio.h>
 
-static void ray_render_grid(SDL_Renderer *renderer) {
+static void ray_render_grid(SDL_Renderer *renderer, Color c) {
+  SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, 128);
+
   for (int i = CELL_W; i < WINDOW_W; i += CELL_W) {
     SDL_RenderDrawLine(renderer, i, 0, i + 1, WINDOW_H);
   }
@@ -25,7 +28,9 @@ static void ray_fill_circle(SDL_Renderer *renderer, Circle *c) {
   }
 }
 
-static void ray_trace(SDL_Renderer *renderer, Circle *c) {
+static void ray_trace_circle(SDL_Renderer *renderer, Circle *c, Color color) {
+  SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 128);
+
   float angle = M_PI / 8;
   float i = 0;
   for (;;) {
@@ -38,18 +43,34 @@ static void ray_trace(SDL_Renderer *renderer, Circle *c) {
   }
 }
 
+static Color *RAY_MAP[CELL_COUNT] = {
+    NULL, NULL, NULL, NULL, NULL,         NULL, NULL, NULL, &COLOR_WHITE, NULL,
+    NULL, NULL, NULL, NULL, &COLOR_WHITE, NULL, NULL, NULL, &COLOR_WHITE, NULL,
+    NULL, NULL, NULL, NULL, NULL,
+};
+
+static void ray_render_map(SDL_Renderer *renderer, Color **map) {
+  for (int i = 0; i < CELL_H_COUNT; i++) {
+    for (int j = 0; j < CELL_W_COUNT; j++) {
+      Color *c = map[i * CELL_W_COUNT + j];
+      if (c == NULL)
+        continue;
+
+      SDL_SetRenderDrawColor(renderer, c->r, c->g, c->b, 255);
+      SDL_RenderFillRect(renderer, &(SDL_Rect){.x = j * CELL_W,
+                                               .y = i * CELL_H,
+                                               .w = CELL_W,
+                                               .h = CELL_H});
+    }
+  }
+};
+
 void ray_render(SDL_Renderer *renderer) {
   SDL_Rect rect = (SDL_Rect){.x = 200, .y = 200, .w = 200, .h = 200};
-  SDL_SetRenderDrawColor(renderer, COLOR_WHITE.r, COLOR_WHITE.g, COLOR_WHITE.b,
-                         128);
-  ray_render_grid(renderer);
+  ray_render_grid(renderer, COLOR_WHITE);
+  ray_render_map(renderer, RAY_MAP);
 
-  Circle c1 = {.x = 350, .y = 400, .r = 5};
-  Circle c2 = {.x = 1200, .y = 600, .r = 200};
+  Circle c1 = {.x = 50, .y = 100, .r = 10};
   ray_fill_circle(renderer, &c1);
-  ray_fill_circle(renderer, &c2);
-
-  SDL_SetRenderDrawColor(renderer, COLOR_YELLOW.r, COLOR_YELLOW.g,
-                         COLOR_YELLOW.b, 128);
-  ray_trace(renderer, &c1);
+  ray_trace_circle(renderer, &c1, COLOR_YELLOW);
 }
