@@ -28,45 +28,65 @@ static void ray_fill_circle(SDL_Renderer *renderer, Circle *c) {
   }
 }
 
-static void ray_trace_circle(SDL_Renderer *renderer, Circle *c, Color color) {
+static void ray_trace_inf(SDL_Renderer *renderer, Circle *c, Color color) {
   SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 128);
 
-  float a = 60.0 / 360.0;
+  float a = 60.0 / 360.0 * 2 * M_PI;
   float t = a * 2 * M_PI;
   float n = 0;
-  for (;;) {
+  while (1) {
     float x = c->x + n * cos(t);
     float y = c->y + n * sin(t);
-    if (x < 0 || x >= WINDOW_W || y < 0 || y >= WINDOW_H)
+    if (OOB(x, y))
       break;
     SDL_RenderDrawPoint(renderer, x, y);
     n++;
   }
 }
 
-static void ray_trace(SDL_Renderer *renderer, Circle *c, Color color) {
-  SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 128);
+static Vec2 ray_trace_step(SDL_Renderer *renderer, Vec2 *v2, float angle) {
+  float t = tan(angle);
+  float x1 = v2->x;
+  float y1 = v2->y;
 
-  float a = 60.0 / 360.0;
-  float t = a * 2 * M_PI;
-  float x1 = c->x;
-  float y1 = c->y;
+  int nx = floor(x1 / CELL_W) * CELL_W;
+  int ny = floor(y1 / CELL_H) * CELL_H;
+  if (angle < M_PI / 2) {
+    nx += CELL_W;
+    ny += CELL_H;
+  } else if (angle < M_PI) {
+    ny += CELL_H;
+  } else if (angle < M_PI * 3 / 2) {
+  } else {
+    nx += CELL_W;
+  }
 
-  // 2nd quadrant
-  if (0 < a && a < 90) {
-    float x2 = ceil(x1 / 100.0) * 100;
-    float y2 = ceil(y1 / 100.0) * 100;
-    if (fabs(x1 - x2) < fabs(y1 - y2)) {
-      // x2 = x1 + (y2 - y1) / sin(t) * cos(t);
-      float x2 = x1 + (y2 - y1) / sin(t) * cos(t);
-      SDL_RenderDrawRect(renderer,
-                         &(SDL_Rect){.x = x2 - 3, .y = y2 - 3, .w = 6, .h = 6});
-    } else {
-      // y2 = y1 + (x2 - x1) / cos(t) * sin(t)
-      float y2 = y1 + (x2 - x1) / cos(t) * sin(t);
-      SDL_RenderDrawRect(renderer,
-                         &(SDL_Rect){.x = x2 - 3, .y = y2 - 3, .w = 6, .h = 6});
+  // x = (y - y1) / t + x1
+  // y = t(x - x1) + y1
+  float x = (ny - y1) / t + x1;
+  float y = t * (nx - x1) + y1;
+  if (fabs(x1 - x) < fabs(y1 - y)) {
+    float ry = t * (x - x1) + y1;
+    return (Vec2){.x = x, .y = ry};
+  } else {
+    float rx = (y - y1) / t + x1;
+    return (Vec2){.x = rx, .y = y};
+  }
+}
+
+static void ray_trace(SDL_Renderer *renderer, Circle *p, float angle, Color c) {
+  SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, 128);
+  float x = p->x;
+  float y = p->y;
+
+  while (1) {
+    Vec2 snap = ray_trace_step(renderer, &(Vec2){.x = x, .y = y}, angle);
+    if (OOB(snap.x, snap.y)) {
+      return;
     }
+    SDL_RenderDrawLine(renderer, p->x, p->y, snap.x, snap.y);
+    x = snap.x + 1;
+    y = snap.y + 1;
   }
 }
 
@@ -99,6 +119,7 @@ void ray_render(SDL_Renderer *renderer) {
 
   Circle c1 = {.x = 50, .y = 150, .r = 10};
   ray_fill_circle(renderer, &c1);
-  ray_trace_circle(renderer, &c1, COLOR_YELLOW);
-  ray_trace(renderer, &c1, COLOR_YELLOW);
+
+  float angle = 60.0 / 360.0 * 2 * M_PI;
+  ray_trace(renderer, &c1, angle, COLOR_YELLOW);
 }

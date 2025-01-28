@@ -20,4 +20,10 @@
 
 #define ROUND(n, m) (((n + m / 2) / m) * m)
 
+#define OOB(x, y) (x < 0 || x >= WINDOW_W || y < 0 || y >= WINDOW_H)
+
+typedef struct {
+  float x, y;
+} Vec2;
+
 #endif
