@@ -1,10 +1,8 @@
-#include "ray.h"
 #include <SDL.h>
 #include <stdio.h>
 
-#define WINDOW_W 1600
-#define WINDOW_H 900
-#define COLOR_WHITE (Color){.r = 255, .g = 255, .b = 255}
+#include "ray.h"
+#include "raylib.h"
 
 int main(void) {
   if (SDL_Init(SDL_INIT_VIDEO)) {
@@ -43,8 +41,10 @@ int main(void) {
 
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
-    render_ray_tracing(renderer);
+    ray_render(renderer);
     SDL_RenderPresent(renderer);
+
+    SDL_Delay(1000 / FPS);
   }
 
   SDL_DestroyWindow(window);

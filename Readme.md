@@ -1,6 +1,6 @@
 # Raylib
 
-From scratch
+From scratch using SDL2
 
 ```shell
 $ make
