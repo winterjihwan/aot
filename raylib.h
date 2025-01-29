@@ -15,7 +15,7 @@
 #define COLOR_BLACK (Color){.r = 0, .g = 0, .b = 0}
 #define COLOR_YELLOW (Color){.r = 255, .g = 252, .b = 127}
 
-#define ROUND(n, m) (((n + m / 2) / m) * m)
+#define THETA(n) (n / 360.0 * 2 * M_PI)
 #define OOB(x, y) (x < 0 || x > WINDOW_W || y < 0 || y > WINDOW_H)
 #define NCP 1
 #define GET_CELL(y, x) RAY_MAP[y * CELL_W_COUNT + x]
