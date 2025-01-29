@@ -37,11 +37,12 @@ int main(void) {
       if (e.type == SDL_QUIT) {
         should_end = 1;
       }
+      ray_poll_event(&e);
     }
 
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
-    ray_render(renderer);
+    ray_render(renderer, &e);
     SDL_RenderPresent(renderer);
 
     SDL_Delay(1000 / FPS);

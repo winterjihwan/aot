@@ -1,9 +1,10 @@
+#include "SDL_events.h"
 #include "SDL_render.h"
 #include "math.h"
+#include <stdio.h>
 
 #include "ray.h"
 #include "raylib.h"
-#include <stdio.h>
 
 static void ray_render_grid(SDL_Renderer *renderer, Color c) {
   SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, 128);
@@ -63,30 +64,14 @@ static Vec2 ray_trace_step(SDL_Renderer *renderer, Vec2 *v2, float angle) {
 
   // x = (y - y1) / t + x1
   // y = t(x - x1) + y1
-  float x = (ny - y1) / t + x1;
+  float x = t == 0 ? x1 : (ny - y1) / t + x1;
   float y = t * (nx - x1) + y1;
   if (fabs(x1 - x) < fabs(y1 - y)) {
     float ry = t * (x - x1) + y1;
     return (Vec2){.x = x, .y = ry};
   } else {
-    float rx = (y - y1) / t + x1;
+    float rx = t == 0 ? x1 : (y - y1) / t + x1;
     return (Vec2){.x = rx, .y = y};
-  }
-}
-
-static void ray_trace(SDL_Renderer *renderer, Circle *p, float angle, Color c) {
-  SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, 128);
-  float x = p->x;
-  float y = p->y;
-
-  while (1) {
-    Vec2 snap = ray_trace_step(renderer, &(Vec2){.x = x, .y = y}, angle);
-    if (OOB(snap.x, snap.y)) {
-      return;
-    }
-    SDL_RenderDrawLine(renderer, p->x, p->y, snap.x, snap.y);
-    x = snap.x + 1;
-    y = snap.y + 1;
   }
 }
 
@@ -96,10 +81,39 @@ static Color *RAY_MAP[CELL_COUNT] = {
     NULL, NULL, NULL, NULL, NULL,
 };
 
-static void ray_render_map(SDL_Renderer *renderer, Color **map) {
+static void ray_trace(SDL_Renderer *renderer, Vec2 *v2, float angle, Color c) {
+  SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, 128);
+  float x = v2->x;
+  float y = v2->y;
+
+  while (1) {
+    Vec2 snap = ray_trace_step(renderer, &(Vec2){.x = x, .y = y}, angle);
+    if (OOB(x, y) || GET_CELL_COOR(y, x) != NULL) {
+      return;
+    }
+
+    SDL_RenderDrawLine(renderer, v2->x, v2->y, snap.x, snap.y);
+
+    if (angle < M_PI / 2) {
+      x = snap.x + NCP;
+      y = snap.y + NCP;
+    } else if (angle < M_PI) {
+      x = snap.x - NCP;
+      y = snap.y + NCP;
+    } else if (angle < M_PI * 3 / 2) {
+      x = snap.x - NCP;
+      y = snap.y - NCP;
+    } else {
+      x = snap.x + NCP;
+      y = snap.y - NCP;
+    }
+  }
+}
+
+static void ray_render_map(SDL_Renderer *renderer) {
   for (int i = 0; i < CELL_H_COUNT; i++) {
     for (int j = 0; j < CELL_W_COUNT; j++) {
-      Color *c = map[i * CELL_W_COUNT + j];
+      Color *c = GET_CELL(i, j);
       if (c == NULL)
         continue;
 
@@ -112,14 +126,26 @@ static void ray_render_map(SDL_Renderer *renderer, Color **map) {
   }
 };
 
-void ray_render(SDL_Renderer *renderer) {
-  SDL_Rect rect = (SDL_Rect){.x = 200, .y = 200, .w = 200, .h = 200};
+static Circle player = {.x = 50, .y = 150, .r = 10};
+static float fov_angle = 10.0 / 360.0 * 2 * M_PI;
+
+void ray_poll_event(SDL_Event *event) {
+  if (event->type == SDL_KEYDOWN) {
+    if (event->key.keysym.sym == SDLK_LEFT) {
+      fov_angle -= 5.0 / 360.0 * 2 * M_PI;
+    } else if (event->key.keysym.sym == SDLK_RIGHT) {
+      fov_angle += 5.0 / 360.0 * 2 * M_PI;
+    }
+  }
+}
+
+void ray_render(SDL_Renderer *renderer, SDL_Event *event) {
   ray_render_grid(renderer, COLOR_WHITE);
-  ray_render_map(renderer, RAY_MAP);
+  ray_render_map(renderer);
+  ray_fill_circle(renderer, &player);
 
-  Circle c1 = {.x = 50, .y = 150, .r = 10};
-  ray_fill_circle(renderer, &c1);
+  Vec2 player_pos = {.x = player.x, .y = player.y};
 
-  float angle = 60.0 / 360.0 * 2 * M_PI;
-  ray_trace(renderer, &c1, angle, COLOR_YELLOW);
+  fov_angle = 0 / 360.0 * 2 * M_PI;
+  ray_trace(renderer, &player_pos, fov_angle, COLOR_YELLOW);
 }
