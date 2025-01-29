@@ -72,8 +72,27 @@ void ray_poll_event(SDL_Event *event) {
   if (event->type == SDL_KEYDOWN) {
     if (event->key.keysym.sym == SDLK_LEFT) {
       player_direction = (player_direction - 5) % 360;
+
     } else if (event->key.keysym.sym == SDLK_RIGHT) {
       player_direction = (player_direction + 5) % 360;
+    }
+
+    else if (event->key.keysym.sym == SDLK_UP) {
+      float t = THETA(player_direction);
+      float x = player.x + VELOCITY * cos(t);
+      float y = player.y + VELOCITY * sin(t);
+      if (!OOB(x, y)) {
+        player = (Circle){.x = x, .y = y, .r = player.r};
+      }
+    }
+
+    else if (event->key.keysym.sym == SDLK_DOWN) {
+      float t = THETA(player_direction);
+      float x = player.x - VELOCITY * cos(t);
+      float y = player.y - VELOCITY * sin(t);
+      if (!OOB(x, y)) {
+        player = (Circle){.x = x, .y = y, .r = player.r};
+      }
     }
   }
 }
@@ -84,6 +103,5 @@ void ray_render(SDL_Renderer *renderer, SDL_Event *event) {
   ray_fill_circle(renderer, &player);
 
   Vec2 player_pos = {.x = player.x, .y = player.y};
-
   ray_trace(renderer, &player_pos, THETA(player_direction), COLOR_YELLOW);
 }
