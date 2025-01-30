@@ -6,24 +6,30 @@
 #include "ray.h"
 #include "raylib.h"
 
-static Color color_white = {.r = 255, .g = 255, .b = 255};
-static Color color_black = {.r = 0, .g = 0, .b = 0};
-static Color color_yellow = {.r = 255, .g = 252, .b = 127};
+static Color COLOR_WHITE = {.r = 255, .g = 255, .b = 255};
+static Color COLOR_BLACK = {.r = 0, .g = 0, .b = 0};
+static Color COLOR_GRAY = {.r = 200, .g = 200, .b = 200};
+static Color COLOR_DARKGRAY = {.r = 50, .g = 50, .b = 50};
+static Color COLOR_YELLOW = {.r = 255, .g = 252, .b = 127};
+static Color COLOR_SKYBLUE = {.r = 173, .g = 216, .b = 230};
 static Color *RAY_MAP[CELL_COUNT] = {
-    NULL, NULL, NULL, NULL, NULL,         NULL, NULL, NULL, &color_white, NULL,
-    NULL, NULL, NULL, NULL, &color_white, NULL, NULL, NULL, &color_white, NULL,
-    NULL, NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL,         NULL, NULL, NULL, NULL, NULL, &COLOR_YELLOW, NULL,
+    NULL, NULL, &COLOR_WHITE, NULL, NULL, NULL, NULL, NULL, &COLOR_WHITE,  NULL,
+    NULL, NULL, NULL,         NULL, NULL,
 };
 
-static void ray_render_grid(SDL_Renderer *renderer, Color c) {
-  SDL_SetRenderDrawColor(renderer, color_black.r, color_black.g, color_black.b,
-                         255);
-  SDL_RenderDrawRect(renderer, &(SDL_Rect){.x = 0,
+static inline void ray_color_set(SDL_Renderer *renderer, Color *c) {
+  SDL_SetRenderDrawColor(renderer, c->r, c->g, c->b, 255);
+}
+
+static void ray_render_grid(SDL_Renderer *renderer, Color *c) {
+  ray_color_set(renderer, &COLOR_BLACK);
+  SDL_RenderFillRect(renderer, &(SDL_Rect){.x = 0,
                                            .y = 0,
                                            .w = WINDOW_W / MN_SCALE,
                                            .h = WINDOW_W / MN_SCALE});
 
-  SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, 255);
+  ray_color_set(renderer, c);
   for (int i = 0; i <= WINDOW_W / MN_SCALE; i += CELL_W / MN_SCALE) {
     SDL_RenderDrawLine(renderer, i, 0, i, WINDOW_H / MN_SCALE);
   }
@@ -85,7 +91,7 @@ static void ray_render_map(SDL_Renderer *renderer) {
       if (c == NULL)
         continue;
 
-      SDL_SetRenderDrawColor(renderer, c->r, c->g, c->b, 255);
+      ray_color_set(renderer, c);
       SDL_RenderFillRect(renderer, &(SDL_Rect){.x = j * CELL_W / MN_SCALE,
                                                .y = i * CELL_H / MN_SCALE,
                                                .w = CELL_W / MN_SCALE,
@@ -126,7 +132,8 @@ void ray_poll_event(SDL_Event *event) {
   }
 }
 
-static void ray_render_fov(SDL_Renderer *renderer) {
+static void ray_render_fov(SDL_Renderer *renderer, Color *color) {
+  ray_color_set(renderer, color);
   Vec2 fovl = ray_cast_dist(renderer, &(Vec2){.x = player.x, .y = player.y},
                             THETA(player_direction - FOV / 2), 50);
   Vec2 fovr = ray_cast_dist(renderer, &(Vec2){.x = player.x, .y = player.y},
@@ -140,31 +147,43 @@ static void ray_render_fov(SDL_Renderer *renderer) {
 }
 
 static void ray_render_minimap(SDL_Renderer *renderer) {
-  ray_render_grid(renderer, color_white);
+  ray_render_grid(renderer, &COLOR_WHITE);
   ray_render_map(renderer);
   ray_fill_circle(renderer, &player);
-  SDL_SetRenderDrawColor(renderer, color_yellow.r, color_yellow.g,
-                         color_yellow.b, 255);
-  ray_render_fov(renderer);
+  ray_render_fov(renderer, &COLOR_YELLOW);
 }
 
-static void ray_render_game(SDL_Renderer *renderer) {
+static void ray_render_world(SDL_Renderer *renderer) {
+  // sky
+  ray_color_set(renderer, &COLOR_GRAY);
+  SDL_RenderFillRect(
+      renderer, &(SDL_Rect){.x = 0, .y = 0, .w = WINDOW_W, .h = WINDOW_H / 2});
+
+  // floor
+  ray_color_set(renderer, &COLOR_DARKGRAY);
+  SDL_RenderFillRect(
+      renderer,
+      &(SDL_Rect){.x = 0, .y = WINDOW_H / 2, .w = WINDOW_W, .h = WINDOW_H / 2});
+
+  // walls
   for (int i = 0; i < WINDOW_W; i++) {
     float a = player_direction - FOV / 2.0 + (i / (float)WINDOW_W) * FOV;
     Vec2 cast =
         ray_cast(renderer, &(Vec2){.x = player.x, .y = player.y}, THETAF(a));
     Color *c = GET_CELL_COOR(cast.y, cast.x);
     if (c != NULL) {
-      float dist =
+      ray_color_set(renderer, &(Color){.r = c->r, .g = c->g, .b = c->b});
+      float raw_dist =
           sqrt(powf(cast.x - player.x, 2) + powf(cast.y - player.y, 2));
-      float height = dist / WINDOW_H * 100;
-      SDL_SetRenderDrawColor(renderer, c->r, c->g, c->b, 30);
-      SDL_RenderDrawLine(renderer, i, (WINDOW_H - height) / 2, i, height);
+      float dist = raw_dist * cos(THETAF(a));
+      float height = WINDOW_H * FAR_CLIPPING_PLANE / dist;
+      SDL_RenderDrawLine(renderer, i, WINDOW_H / 2.0 - height / 2.0, i,
+                         WINDOW_H / 2.0 + height / 2.0);
     }
   }
 }
 
 void ray_render(SDL_Renderer *renderer, SDL_Event *event) {
+  ray_render_world(renderer);
   ray_render_minimap(renderer);
-  ray_render_game(renderer);
 }
