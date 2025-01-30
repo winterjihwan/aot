@@ -2,6 +2,7 @@
 #include <SDL_image.h>
 #include <stdio.h>
 
+#include "SDL_render.h"
 #include "ray.h"
 #include "raylib.h"
 
@@ -37,6 +38,8 @@ int main(void) {
     SDL_Quit();
     return EXIT_FAILURE;
   }
+
+  ray_load_textures(window, renderer);
 
   SDL_Event e;
   int should_end = 0;

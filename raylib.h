@@ -1,6 +1,9 @@
 #ifndef RAYLIB_H
 #define RAYLIB_H
 
+// Static
+#define TEX_MAX 15
+
 // Game
 #define FPS 30
 #define WINDOW_W 500

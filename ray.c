@@ -1,10 +1,15 @@
+#include "SDL.h"
 #include "SDL_events.h"
+#include "SDL_image.h"
 #include "SDL_render.h"
 #include "math.h"
 #include <stdio.h>
 
 #include "ray.h"
 #include "raylib.h"
+
+static SDL_Texture *TEX[TEX_MAX] = {0};
+static int TEX_C = 0;
 
 static Color COLOR_WHITE = {.r = 255, .g = 255, .b = 255};
 static Color COLOR_BLACK = {.r = 0, .g = 0, .b = 0};
@@ -17,6 +22,25 @@ static Color *RAY_MAP[CELL_COUNT] = {
     NULL, NULL, NULL, NULL, &COLOR_WHITE, NULL, NULL, NULL, &COLOR_WHITE,  NULL,
     NULL, NULL, NULL, NULL, NULL,
 };
+
+void ray_load_textures(SDL_Window *window, SDL_Renderer *renderer) {
+  SDL_Texture *texture = IMG_LoadTexture(renderer, "./png/cat.png");
+  if (!texture) {
+    fprintf(stderr, "Texture load fail");
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    IMG_Quit();
+    SDL_Quit();
+    exit(1);
+  }
+
+  if (TEX_C + 1 > TEX_MAX) {
+    fprintf(stderr, "Exceed max textures");
+    exit(2);
+  }
+
+  TEX[TEX_C++] = texture;
+}
 
 static inline void ray_color_set(SDL_Renderer *renderer, Color *c) {
   SDL_SetRenderDrawColor(renderer, c->r, c->g, c->b, 255);
@@ -151,6 +175,16 @@ static void ray_render_minimap(SDL_Renderer *renderer) {
   ray_render_map(renderer);
   ray_fill_circle(renderer, &player);
   ray_render_fov(renderer, &COLOR_YELLOW);
+}
+
+static void ray_render_tex_strip(SDL_Renderer *renderer, SDL_Texture *tex,
+                                 int x) {
+  int tex_w, tex_h = 0;
+  SDL_QueryTexture(tex, NULL, NULL, &tex_w, &tex_h);
+
+  SDL_Rect srcrect = {.x = 0, .y = 0, .w = x, .h = tex_h};
+  SDL_Rect dstrect = {.x = 0, .y = 0, .w = x, .h = WINDOW_H};
+  SDL_RenderCopy(renderer, tex, &srcrect, &dstrect);
 }
 
 static void ray_render_world(SDL_Renderer *renderer) {

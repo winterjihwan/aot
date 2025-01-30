@@ -19,5 +19,6 @@ typedef struct {
 
 void ray_render(SDL_Renderer *renderer, SDL_Event *event);
 void ray_poll_event(SDL_Event *event);
+void ray_load_textures(SDL_Window *window, SDL_Renderer *renderer);
 
 #endif
