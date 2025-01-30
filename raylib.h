@@ -5,6 +5,7 @@
 #define FPS 30
 #define WINDOW_W 500
 #define WINDOW_H 500
+#define FOV 40
 
 // Minimap
 #define MN_SCALE 5
@@ -28,7 +29,7 @@
   (Color) { .r = 255, .g = 252, .b = 127 }
 
 // Math
-#define THETA(n) (n / 360.0 * 2 * M_PI)
+#define THETA(n) ((n % 360) / 360.0 * 2 * M_PI)
 #define NCP 1
 #define VELOCITY 5
 
