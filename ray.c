@@ -8,7 +8,7 @@
 #include "ray.h"
 #include "raylib.h"
 
-static SDL_Texture *TEX[TEX_MAX] = {0};
+static Texture TEX[TEX_MAX] = {0};
 static int TEX_C = 0;
 
 static Color COLOR_WHITE = {.r = 255, .g = 255, .b = 255};
@@ -17,10 +17,10 @@ static Color COLOR_GRAY = {.r = 200, .g = 200, .b = 200};
 static Color COLOR_DARKGRAY = {.r = 50, .g = 50, .b = 50};
 static Color COLOR_YELLOW = {.r = 255, .g = 252, .b = 127};
 static Color COLOR_SKYBLUE = {.r = 173, .g = 216, .b = 230};
-static Color *RAY_MAP[CELL_COUNT] = {
-    NULL, NULL, NULL, NULL, NULL,         NULL, NULL, NULL, &COLOR_YELLOW, NULL,
-    NULL, NULL, NULL, NULL, &COLOR_WHITE, NULL, NULL, NULL, &COLOR_WHITE,  NULL,
-    NULL, NULL, NULL, NULL, NULL,
+
+static int RAY_MAP[CELL_COUNT] = {
+    -1, -1, -1, -1, -1, -1, -1, -1, 0,  -1, -1, -1, -1,
+    -1, 0,  -1, -1, -1, 0,  -1, -1, -1, -1, -1, -1,
 };
 
 void ray_load_textures(SDL_Window *window, SDL_Renderer *renderer) {
@@ -39,7 +39,9 @@ void ray_load_textures(SDL_Window *window, SDL_Renderer *renderer) {
     exit(2);
   }
 
-  TEX[TEX_C++] = texture;
+  int w, h = 0;
+  SDL_QueryTexture(texture, NULL, NULL, &w, &h);
+  TEX[TEX_C++] = (Texture){.texture = texture, .w = w, .h = h};
 }
 
 static inline void ray_color_set(SDL_Renderer *renderer, Color *c) {
@@ -81,7 +83,7 @@ static Vec2 ray_cast(SDL_Renderer *renderer, Vec2 *v2, float t) {
   while (1) {
     float tx = x + cos(t);
     float ty = y + sin(t);
-    if (OOB(tx, ty) || GET_CELL_COOR(y, x) != NULL) {
+    if (OOB(tx, ty) || GET_CELL_COOR(y, x) != -1) {
       break;
     }
     x = tx;
@@ -98,7 +100,7 @@ static Vec2 ray_cast_dist(SDL_Renderer *renderer, Vec2 *v2, float t,
   while (n < limit) {
     float tx = x + cos(t);
     float ty = y + sin(t);
-    if (OOB(tx, ty) || GET_CELL_COOR(y, x) != NULL) {
+    if (OOB(tx, ty) || GET_CELL_COOR(y, x) != -1) {
       break;
     }
     x = tx;
@@ -108,18 +110,32 @@ static Vec2 ray_cast_dist(SDL_Renderer *renderer, Vec2 *v2, float t,
   return (Vec2){.x = x, .y = y};
 }
 
+static void ray_render_tex(SDL_Renderer *renderer, Texture *tex,
+                           SDL_Rect *dstrect) {
+  SDL_Rect srcrect = {.x = 0, .y = 0, .w = tex->w, .h = tex->h};
+  SDL_RenderCopy(renderer, tex->texture, &srcrect, dstrect);
+}
+
+static void ray_render_tex_strip(SDL_Renderer *renderer, Texture *tex, int x) {
+  SDL_Rect srcrect = {.x = 0, .y = 0, .w = x, .h = tex->h};
+  SDL_Rect dstrect = {.x = 0, .y = 0, .w = x, .h = WINDOW_H};
+  SDL_RenderCopy(renderer, tex->texture, &srcrect, &dstrect);
+}
+
 static void ray_render_map(SDL_Renderer *renderer) {
   for (int i = 0; i < CELL_COUNT_H; i++) {
     for (int j = 0; j < CELL_COUNT_W; j++) {
-      Color *c = GET_CELL(i, j);
-      if (c == NULL)
+      int tex_offset = GET_CELL(i, j);
+      if (tex_offset == -1)
         continue;
 
-      ray_color_set(renderer, c);
-      SDL_RenderFillRect(renderer, &(SDL_Rect){.x = j * CELL_W / MN_SCALE,
-                                               .y = i * CELL_H / MN_SCALE,
-                                               .w = CELL_W / MN_SCALE,
-                                               .h = CELL_H / MN_SCALE});
+      SDL_Rect dst = {
+          .x = j * CELL_W / MN_SCALE,
+          .y = i * CELL_H / MN_SCALE,
+          .w = CELL_W / MN_SCALE,
+          .h = CELL_H / MN_SCALE,
+      };
+      ray_render_tex(renderer, &TEX[tex_offset], &dst);
     }
   }
 };
@@ -140,7 +156,7 @@ void ray_poll_event(SDL_Event *event) {
       float t = THETA(player_direction);
       float x = player.x + VELOCITY * cos(t);
       float y = player.y + VELOCITY * sin(t);
-      if (!OOB(x, y) && GET_CELL_COOR(y, x) == NULL) {
+      if (!OOB(x, y) && GET_CELL_COOR(y, x) == -1) {
         player = (Circle){.x = x, .y = y, .r = player.r};
       }
     }
@@ -149,7 +165,7 @@ void ray_poll_event(SDL_Event *event) {
       float t = THETA(player_direction);
       float x = player.x - VELOCITY * cos(t);
       float y = player.y - VELOCITY * sin(t);
-      if (!OOB(x, y) && GET_CELL_COOR(y, x) == NULL) {
+      if (!OOB(x, y) && GET_CELL_COOR(y, x) == -1) {
         player = (Circle){.x = x, .y = y, .r = player.r};
       }
     }
@@ -177,16 +193,6 @@ static void ray_render_minimap(SDL_Renderer *renderer) {
   ray_render_fov(renderer, &COLOR_YELLOW);
 }
 
-static void ray_render_tex_strip(SDL_Renderer *renderer, SDL_Texture *tex,
-                                 int x) {
-  int tex_w, tex_h = 0;
-  SDL_QueryTexture(tex, NULL, NULL, &tex_w, &tex_h);
-
-  SDL_Rect srcrect = {.x = 0, .y = 0, .w = x, .h = tex_h};
-  SDL_Rect dstrect = {.x = 0, .y = 0, .w = x, .h = WINDOW_H};
-  SDL_RenderCopy(renderer, tex, &srcrect, &dstrect);
-}
-
 static void ray_render_world(SDL_Renderer *renderer) {
   // sky
   ray_color_set(renderer, &COLOR_GRAY);
@@ -200,25 +206,26 @@ static void ray_render_world(SDL_Renderer *renderer) {
       &(SDL_Rect){.x = 0, .y = WINDOW_H / 2, .w = WINDOW_W, .h = WINDOW_H / 2});
 
   // walls
-  for (int i = 0; i < WINDOW_W; i++) {
-    float angle = player_direction - FOV / 2.0 + (i / (float)WINDOW_W) * FOV;
-    float angle_theta = THETAF(angle);
-    Vec2 cast =
-        ray_cast(renderer, &(Vec2){.x = player.x, .y = player.y}, angle_theta);
-    Color *c = GET_CELL_COOR(cast.y, cast.x);
-    if (c != NULL) {
-      float raw_dist = DISTF(cast, player);
-      float dist = raw_dist * cos(angle_theta);
-      float height = WINDOW_H * FAR_CLIPPING_PLANE / dist;
-      ray_color_set(
-          renderer,
-          &(Color){.r = CLAMPF(c->r / dist * BRIGHTNESS_FACTOR, 0, c->r),
-                   .g = CLAMPF(c->g / dist * BRIGHTNESS_FACTOR, 0, c->g),
-                   .b = CLAMPF(c->b / dist * BRIGHTNESS_FACTOR, 0, c->b)});
-      SDL_RenderDrawLine(renderer, i, WINDOW_H / 2.0 - height / 2.0, i,
-                         WINDOW_H / 2.0 + height / 2.0);
-    }
-  }
+  // for (int i = 0; i < WINDOW_W; i++) {
+  //   float angle = player_direction - FOV / 2.0 + (i / (float)WINDOW_W) * FOV;
+  //   float angle_theta = THETAF(angle);
+  //   Vec2 cast =
+  //       ray_cast(renderer, &(Vec2){.x = player.x, .y = player.y},
+  //       angle_theta);
+  //   Color *c = GET_CELL_COOR(cast.y, cast.x);
+  //   if (c != NULL) {
+  //     float raw_dist = DISTF(cast, player);
+  //     float dist = raw_dist * cos(angle_theta);
+  //     float height = WINDOW_H * FAR_CLIPPING_PLANE / dist;
+  //     ray_color_set(
+  //         renderer,
+  //         &(Color){.r = CLAMPF(c->r / dist * BRIGHTNESS_FACTOR, 0, c->r),
+  //                  .g = CLAMPF(c->g / dist * BRIGHTNESS_FACTOR, 0, c->g),
+  //                  .b = CLAMPF(c->b / dist * BRIGHTNESS_FACTOR, 0, c->b)});
+  //     SDL_RenderDrawLine(renderer, i, WINDOW_H / 2.0 - height / 2.0, i,
+  //                        WINDOW_H / 2.0 + height / 2.0);
+  //   }
+  // }
 }
 
 void ray_render(SDL_Renderer *renderer, SDL_Event *event) {
