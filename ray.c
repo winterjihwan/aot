@@ -13,9 +13,9 @@ static Color COLOR_DARKGRAY = {.r = 50, .g = 50, .b = 50};
 static Color COLOR_YELLOW = {.r = 255, .g = 252, .b = 127};
 static Color COLOR_SKYBLUE = {.r = 173, .g = 216, .b = 230};
 static Color *RAY_MAP[CELL_COUNT] = {
-    NULL, NULL, NULL,         NULL, NULL, NULL, NULL, NULL, &COLOR_YELLOW, NULL,
-    NULL, NULL, &COLOR_WHITE, NULL, NULL, NULL, NULL, NULL, &COLOR_WHITE,  NULL,
-    NULL, NULL, NULL,         NULL, NULL,
+    NULL, NULL, NULL, NULL, NULL,         NULL, NULL, NULL, &COLOR_YELLOW, NULL,
+    NULL, NULL, NULL, NULL, &COLOR_WHITE, NULL, NULL, NULL, &COLOR_WHITE,  NULL,
+    NULL, NULL, NULL, NULL, NULL,
 };
 
 static inline void ray_color_set(SDL_Renderer *renderer, Color *c) {
@@ -172,11 +172,14 @@ static void ray_render_world(SDL_Renderer *renderer) {
         ray_cast(renderer, &(Vec2){.x = player.x, .y = player.y}, THETAF(a));
     Color *c = GET_CELL_COOR(cast.y, cast.x);
     if (c != NULL) {
-      ray_color_set(renderer, &(Color){.r = c->r, .g = c->g, .b = c->b});
       float raw_dist =
           sqrt(powf(cast.x - player.x, 2) + powf(cast.y - player.y, 2));
       float dist = raw_dist * cos(THETAF(a));
       float height = WINDOW_H * FAR_CLIPPING_PLANE / dist;
+      ray_color_set(renderer,
+                    &(Color){.r = CLAMPF(c->r / dist * BRIGHTNESS, 0, 255),
+                             .g = CLAMPF(c->g / dist * BRIGHTNESS, 0, 255),
+                             .b = CLAMPF(c->b / dist * BRIGHTNESS, 0, 255)});
       SDL_RenderDrawLine(renderer, i, WINDOW_H / 2.0 - height / 2.0, i,
                          WINDOW_H / 2.0 + height / 2.0);
     }

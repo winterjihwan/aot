@@ -7,6 +7,7 @@
 #define WINDOW_H 500
 #define FOV 40
 #define FAR_CLIPPING_PLANE 150
+#define BRIGHTNESS_FACTOR 100
 
 // Minimap
 #define MN_SCALE 5
@@ -25,6 +26,7 @@
 #define THETA(n) ((n % 360) / 360.0 * 2 * M_PI)
 #define THETAF(n) (fmodf(n, 360) / 360.0 * 2 * M_PI)
 #define VELOCITY 5
+#define CLAMPF(n, l, h) (n < l ? n : (n > h ? h : n))
 
 // Guard
 #define OOB(x, y) (x < 0 || x >= WINDOW_W || y < 0 || y >= WINDOW_H)

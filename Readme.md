@@ -1,4 +1,4 @@
-# Raylib
+# Raycast
 
 From scratch using SDL2
 
