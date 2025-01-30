@@ -6,9 +6,24 @@
 #include "ray.h"
 #include "raylib.h"
 
-static void ray_render_grid(SDL_Renderer *renderer, Color c) {
-  SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, 255);
+static Color color_white = {.r = 255, .g = 255, .b = 255};
+static Color color_black = {.r = 0, .g = 0, .b = 0};
+static Color color_yellow = {.r = 255, .g = 252, .b = 127};
+static Color *RAY_MAP[CELL_COUNT] = {
+    NULL, NULL, NULL, NULL, NULL,         NULL, NULL, NULL, &color_white, NULL,
+    NULL, NULL, NULL, NULL, &color_white, NULL, NULL, NULL, &color_white, NULL,
+    NULL, NULL, NULL, NULL, NULL,
+};
 
+static void ray_render_grid(SDL_Renderer *renderer, Color c) {
+  SDL_SetRenderDrawColor(renderer, color_black.r, color_black.g, color_black.b,
+                         255);
+  SDL_RenderDrawRect(renderer, &(SDL_Rect){.x = 0,
+                                           .y = 0,
+                                           .w = WINDOW_W / MN_SCALE,
+                                           .h = WINDOW_W / MN_SCALE});
+
+  SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, 255);
   for (int i = 0; i <= WINDOW_W / MN_SCALE; i += CELL_W / MN_SCALE) {
     SDL_RenderDrawLine(renderer, i, 0, i, WINDOW_H / MN_SCALE);
   }
@@ -29,23 +44,17 @@ static void ray_fill_circle(SDL_Renderer *renderer, Circle *c) {
   }
 }
 
-static Color *RAY_MAP[CELL_COUNT] = {
-    NULL, NULL, NULL, NULL, NULL,         NULL, NULL, NULL, &COLOR_WHITE, NULL,
-    NULL, NULL, NULL, NULL, &COLOR_WHITE, NULL, NULL, NULL, &COLOR_WHITE, NULL,
-    NULL, NULL, NULL, NULL, NULL,
-};
-
 static Vec2 ray_trace(SDL_Renderer *renderer, Vec2 *v2, float t) {
-  int n = 0;
   float x = v2->x;
   float y = v2->y;
   while (1) {
-    x = v2->x + n * cos(t);
-    y = v2->y + n * sin(t);
-    if (OOB(x, y) || GET_CELL_COOR(y, x) != NULL) {
+    float tx = x + cos(t);
+    float ty = y + sin(t);
+    if (OOB(tx, ty) || GET_CELL_COOR(y, x) != NULL) {
       break;
     }
-    n++;
+    x = tx;
+    y = ty;
   }
   return (Vec2){.x = x, .y = y};
 }
@@ -56,11 +65,13 @@ static Vec2 ray_trace_dist(SDL_Renderer *renderer, Vec2 *v2, float t,
   float x = v2->x;
   float y = v2->y;
   while (n < limit) {
-    x = v2->x + n * cos(t);
-    y = v2->y + n * sin(t);
-    if (OOB(x, y) || GET_CELL_COOR(y, x) != NULL) {
+    float tx = x + cos(t);
+    float ty = y + sin(t);
+    if (OOB(tx, ty) || GET_CELL_COOR(y, x) != NULL) {
       break;
     }
+    x = tx;
+    y = ty;
     n++;
   }
   return (Vec2){.x = x, .y = y};
@@ -114,12 +125,7 @@ void ray_poll_event(SDL_Event *event) {
   }
 }
 
-static void ray_render_minimap(SDL_Renderer *renderer) {
-  ray_render_grid(renderer, COLOR_WHITE);
-  ray_render_map(renderer);
-  ray_fill_circle(renderer, &player);
-  SDL_SetRenderDrawColor(renderer, COLOR_YELLOW.r, COLOR_YELLOW.g,
-                         COLOR_YELLOW.b, 255);
+static void ray_render_fov(SDL_Renderer *renderer) {
   Vec2 fovl = ray_trace_dist(renderer, &(Vec2){.x = player.x, .y = player.y},
                              THETA(player_direction - FOV / 2), 50);
   Vec2 fovr = ray_trace_dist(renderer, &(Vec2){.x = player.x, .y = player.y},
@@ -132,18 +138,27 @@ static void ray_render_minimap(SDL_Renderer *renderer) {
                      fovr.x / MN_SCALE, fovr.y / MN_SCALE);
 }
 
+static void ray_render_minimap(SDL_Renderer *renderer) {
+  ray_render_grid(renderer, color_white);
+  ray_render_map(renderer);
+  ray_fill_circle(renderer, &player);
+  SDL_SetRenderDrawColor(renderer, color_yellow.r, color_yellow.g,
+                         color_yellow.b, 255);
+  ray_render_fov(renderer);
+}
+
 static void ray_render_game(SDL_Renderer *renderer) {
-  /*for (int d = player_direction - FOV / 2; d < player_direction + FOV / 2;*/
-  /*     d++) {*/
-  /*  Vec2 trace =*/
-  /*      ray_trace(renderer, &(Vec2){.x = player.x, .y = player.y},
-   * THETA(d));*/
-  /*  Color *c = GET_CELL_COOR(trace.y, trace.x);*/
-  /*  if (c != NULL) {*/
-  /*    SDL_SetRenderDrawColor(renderer, c->r, c->g, c->b, 255);*/
-  /*    SDL_RenderDrawLine(renderer, WINDOW_W / 2, 0, WINDOW_W / 2, WINDOW_H);*/
-  /*  }*/
-  /*}*/
+  for (int d = player_direction - FOV / 2; d < player_direction + FOV / 2;
+       d++) {
+    Vec2 trace =
+        ray_trace(renderer, &(Vec2){.x = player.x, .y = player.y}, THETA(d));
+    Color *c = GET_CELL_COOR(trace.y, trace.x);
+    if (c != NULL) {
+      SDL_SetRenderDrawColor(renderer, c->r, c->g, c->b, 255);
+      SDL_RenderDrawLine(renderer, (FOV - (float)d) / FOV * WINDOW_W, 0,
+                         (FOV - (float)d) / FOV * WINDOW_W, WINDOW_H);
+    }
+  }
 }
 
 void ray_render(SDL_Renderer *renderer, SDL_Event *event) {

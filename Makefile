@@ -8,4 +8,4 @@ all: main
 
 main: main.c ray.c
 	clang $(CLAGS) $(LFLAGS) $(INCLUDE) $(LIB) \
-	$(LOCAL) main.c -o main
+	$(LOCAL) -g main.c -o main

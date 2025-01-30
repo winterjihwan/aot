@@ -18,15 +18,7 @@
 #define CELL_COUNT (CELL_COUNT_W * CELL_COUNT_H)
 #define GET_CELL(y, x) RAY_MAP[y * CELL_COUNT_W + x]
 #define GET_CELL_COOR(y_coor, x_coor)                                          \
-  RAY_MAP[(int)y_coor / 100 * CELL_COUNT_W + (int)x_coor / 100]
-
-// Color
-#define COLOR_WHITE                                                            \
-  (Color) { .r = 255, .g = 255, .b = 255 }
-#define COLOR_BLACK                                                            \
-  (Color) { .r = 0, .g = 0, .b = 0 }
-#define COLOR_YELLOW                                                           \
-  (Color) { .r = 255, .g = 252, .b = 127 }
+  RAY_MAP[(int)y_coor / CELL_H * CELL_COUNT_W + (int)x_coor / CELL_W]
 
 // Math
 #define THETA(n) ((n % 360) / 360.0 * 2 * M_PI)
@@ -34,7 +26,7 @@
 #define VELOCITY 5
 
 // Guard
-#define OOB(x, y) (x < 0 || x > WINDOW_W || y < 0 || y > WINDOW_H)
+#define OOB(x, y) (x < 0 || x >= WINDOW_W || y < 0 || y >= WINDOW_H)
 
 typedef struct {
   float x, y;
