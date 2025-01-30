@@ -27,6 +27,7 @@
 #define THETAF(n) (fmodf(n, 360) / 360.0 * 2 * M_PI)
 #define VELOCITY 5
 #define CLAMPF(n, l, h) (n < l ? n : (n > h ? h : n))
+#define DISTF(v1, v2) (sqrt(powf(v1.x - v2.x, 2) + powf(v1.y - v2.y, 2)))
 
 // Guard
 #define OOB(x, y) (x < 0 || x >= WINDOW_W || y < 0 || y >= WINDOW_H)

@@ -1,4 +1,5 @@
 #include <SDL.h>
+#include <SDL_image.h>
 #include <stdio.h>
 
 #include "ray.h"
@@ -10,12 +11,18 @@ int main(void) {
     return EXIT_FAILURE;
   }
 
+  if (!IMG_Init(IMG_INIT_PNG)) {
+    fprintf(stderr, "IMG init fail");
+    return EXIT_FAILURE;
+  }
+
   SDL_Window *window =
       SDL_CreateWindow("Raylib", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                        WINDOW_W, WINDOW_H, SDL_WINDOW_SHOWN);
 
   if (!window) {
     fprintf(stderr, "SDL2 create window fail");
+    IMG_Quit();
     SDL_Quit();
     return EXIT_FAILURE;
   }
@@ -26,6 +33,7 @@ int main(void) {
   if (!renderer) {
     fprintf(stderr, "SDL2 create renderer fail");
     SDL_DestroyWindow(window);
+    IMG_Quit();
     SDL_Quit();
     return EXIT_FAILURE;
   }
@@ -50,6 +58,7 @@ int main(void) {
 
   SDL_DestroyWindow(window);
   SDL_DestroyRenderer(renderer);
+  IMG_Quit();
   SDL_Quit();
 
   return EXIT_SUCCESS;

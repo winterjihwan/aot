@@ -167,19 +167,20 @@ static void ray_render_world(SDL_Renderer *renderer) {
 
   // walls
   for (int i = 0; i < WINDOW_W; i++) {
-    float a = player_direction - FOV / 2.0 + (i / (float)WINDOW_W) * FOV;
+    float angle = player_direction - FOV / 2.0 + (i / (float)WINDOW_W) * FOV;
+    float angle_theta = THETAF(angle);
     Vec2 cast =
-        ray_cast(renderer, &(Vec2){.x = player.x, .y = player.y}, THETAF(a));
+        ray_cast(renderer, &(Vec2){.x = player.x, .y = player.y}, angle_theta);
     Color *c = GET_CELL_COOR(cast.y, cast.x);
     if (c != NULL) {
-      float raw_dist =
-          sqrt(powf(cast.x - player.x, 2) + powf(cast.y - player.y, 2));
-      float dist = raw_dist * cos(THETAF(a));
+      float raw_dist = DISTF(cast, player);
+      float dist = raw_dist * cos(angle_theta);
       float height = WINDOW_H * FAR_CLIPPING_PLANE / dist;
-      ray_color_set(renderer,
-                    &(Color){.r = CLAMPF(c->r / dist * BRIGHTNESS, 0, 255),
-                             .g = CLAMPF(c->g / dist * BRIGHTNESS, 0, 255),
-                             .b = CLAMPF(c->b / dist * BRIGHTNESS, 0, 255)});
+      ray_color_set(
+          renderer,
+          &(Color){.r = CLAMPF(c->r / dist * BRIGHTNESS_FACTOR, 0, c->r),
+                   .g = CLAMPF(c->g / dist * BRIGHTNESS_FACTOR, 0, c->g),
+                   .b = CLAMPF(c->b / dist * BRIGHTNESS_FACTOR, 0, c->b)});
       SDL_RenderDrawLine(renderer, i, WINDOW_H / 2.0 - height / 2.0, i,
                          WINDOW_H / 2.0 + height / 2.0);
     }
