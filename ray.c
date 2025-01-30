@@ -47,6 +47,7 @@ static void ray_fill_circle(SDL_Renderer *renderer, Circle *c) {
 static Vec2 ray_cast(SDL_Renderer *renderer, Vec2 *v2, float t) {
   float x = v2->x;
   float y = v2->y;
+
   while (1) {
     float tx = x + cos(t);
     float ty = y + sin(t);
@@ -94,7 +95,7 @@ static void ray_render_map(SDL_Renderer *renderer) {
 };
 
 static Circle player = {.x = 50, .y = 150, .r = 10};
-static int player_direction = 10;
+static int player_direction = 0;
 
 void ray_poll_event(SDL_Event *event) {
   if (event->type == SDL_KEYDOWN) {
@@ -149,22 +150,16 @@ static void ray_render_minimap(SDL_Renderer *renderer) {
 
 static void ray_render_game(SDL_Renderer *renderer) {
   for (int i = 0; i < WINDOW_W; i++) {
-    // i == 0          : player_direction - FOV / 2;
-    // i == 1          : ?;
-    // i == WINDOW_W/2 : player_direction
-    // i == WINDOW_W   : player_direction + FOV / 2;
-    // i = player_direction - FOV / 2 + (i / WINDOW_W) * FOV
     float a = player_direction - FOV / 2.0 + (i / (float)WINDOW_W) * FOV;
     Vec2 cast =
         ray_cast(renderer, &(Vec2){.x = player.x, .y = player.y}, THETAF(a));
-    SDL_RenderDrawLine(renderer, player.x / MN_SCALE, player.y / MN_SCALE,
-                       cast.x / MN_SCALE, cast.y / MN_SCALE);
-
     Color *c = GET_CELL_COOR(cast.y, cast.x);
     if (c != NULL) {
-      float dist = cast.x - player.x + cast.y - player.y;
-      SDL_SetRenderDrawColor(renderer, c->r, c->g, c->b, 255);
-      SDL_RenderDrawLine(renderer, i, 0, i, WINDOW_H);
+      float dist =
+          sqrt(powf(cast.x - player.x, 2) + powf(cast.y - player.y, 2));
+      float height = dist / WINDOW_H * 100;
+      SDL_SetRenderDrawColor(renderer, c->r, c->g, c->b, 30);
+      SDL_RenderDrawLine(renderer, i, (WINDOW_H - height) / 2, i, height);
     }
   }
 }
