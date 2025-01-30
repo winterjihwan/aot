@@ -25,8 +25,8 @@
 #define CELL_COUNT_H (WINDOW_H / CELL_H)
 #define CELL_COUNT (CELL_COUNT_W * CELL_COUNT_H)
 #define GET_CELL(y, x) RAY_MAP[y * CELL_COUNT_W + x]
-#define GET_CELL_COOR(y_coor, x_coor)                                          \
-  RAY_MAP[(int)y_coor / 100 * CELL_COUNT_W + (int)x_coor / 100]
+#define GET_CELL_COOR_MN(y_coor, x_coor)                                       \
+  RAY_MAP[(int)y_coor / MN_X * CELL_COUNT_W + (int)x_coor / MN_Y]
 
 // Math
 #define THETA(n) (n / 360.0 * 2 * M_PI)
@@ -34,7 +34,8 @@
 #define NCP 1
 
 // Guard
-#define OOB(x, y) (x < 0 || x > WINDOW_W || y < 0 || y > WINDOW_H)
+#define OOB_MN(x, y)                                                           \
+  (x < MN_X || x > (int)(MN_X + MN_W) || y < MN_Y || y > (int)(MN_Y + MN_H))
 
 // Vec
 typedef struct {

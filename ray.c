@@ -9,14 +9,12 @@
 static void ray_render_grid(SDL_Renderer *renderer, Color c) {
   SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, 255);
 
-  for (int i = MN_X + MN_W / CELL_COUNT_W; i < MN_X + MN_W;
-       i += MN_W / CELL_COUNT_W) {
-    SDL_RenderDrawLine(renderer, i, MN_Y, i, MN_H);
+  for (int i = MN_X; i <= MN_X + MN_W; i += MN_W / CELL_COUNT_W) {
+    SDL_RenderDrawLine(renderer, i, MN_Y, i, MN_Y + MN_H);
   }
 
-  for (int i = MN_Y + MN_H / CELL_COUNT_H; i < MN_Y + MN_H;
-       i += MN_H / CELL_COUNT_H) {
-    SDL_RenderDrawLine(renderer, MN_X, i, MN_X, i);
+  for (int i = MN_Y; i <= MN_Y + MN_H; i += MN_H / CELL_COUNT_H) {
+    SDL_RenderDrawLine(renderer, MN_X, i, MN_X + MN_W, i);
   }
 }
 
@@ -43,7 +41,7 @@ static void ray_trace(SDL_Renderer *renderer, Vec2 *v2, float t, Color c) {
   while (1) {
     float x = v2->x + n * cos(t);
     float y = v2->y + n * sin(t);
-    if (OOB(x, y) || GET_CELL_COOR(y, x) != NULL) {
+    if (OOB_MN(x, y) || GET_CELL_COOR_MN(y, x) != NULL) {
       break;
     }
     SDL_RenderDrawPoint(renderer, x, y);
@@ -84,7 +82,7 @@ void ray_poll_event(SDL_Event *event) {
       float t = THETA(player_direction);
       float x = player.x + VELOCITY * cos(t);
       float y = player.y + VELOCITY * sin(t);
-      if (!OOB(x, y) && GET_CELL_COOR(y, x) == NULL) {
+      if (!OOB_MN(x, y) && GET_CELL_COOR_MN(y, x) == NULL) {
         player = (Circle){.x = x, .y = y, .r = player.r};
       }
     }
@@ -93,7 +91,7 @@ void ray_poll_event(SDL_Event *event) {
       float t = THETA(player_direction);
       float x = player.x - VELOCITY * cos(t);
       float y = player.y - VELOCITY * sin(t);
-      if (!OOB(x, y) && GET_CELL_COOR(y, x) == NULL) {
+      if (!OOB_MN(x, y) && GET_CELL_COOR_MN(y, x) == NULL) {
         player = (Circle){.x = x, .y = y, .r = player.r};
       }
     }
