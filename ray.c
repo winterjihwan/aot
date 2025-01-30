@@ -44,7 +44,7 @@ static void ray_fill_circle(SDL_Renderer *renderer, Circle *c) {
   }
 }
 
-static Vec2 ray_trace(SDL_Renderer *renderer, Vec2 *v2, float t) {
+static Vec2 ray_cast(SDL_Renderer *renderer, Vec2 *v2, float t) {
   float x = v2->x;
   float y = v2->y;
   while (1) {
@@ -59,8 +59,8 @@ static Vec2 ray_trace(SDL_Renderer *renderer, Vec2 *v2, float t) {
   return (Vec2){.x = x, .y = y};
 }
 
-static Vec2 ray_trace_dist(SDL_Renderer *renderer, Vec2 *v2, float t,
-                           int limit) {
+static Vec2 ray_cast_dist(SDL_Renderer *renderer, Vec2 *v2, float t,
+                          int limit) {
   int n = 0;
   float x = v2->x;
   float y = v2->y;
@@ -126,10 +126,10 @@ void ray_poll_event(SDL_Event *event) {
 }
 
 static void ray_render_fov(SDL_Renderer *renderer) {
-  Vec2 fovl = ray_trace_dist(renderer, &(Vec2){.x = player.x, .y = player.y},
-                             THETA(player_direction - FOV / 2), 50);
-  Vec2 fovr = ray_trace_dist(renderer, &(Vec2){.x = player.x, .y = player.y},
-                             THETA(player_direction + FOV / 2), 50);
+  Vec2 fovl = ray_cast_dist(renderer, &(Vec2){.x = player.x, .y = player.y},
+                            THETA(player_direction - FOV / 2), 50);
+  Vec2 fovr = ray_cast_dist(renderer, &(Vec2){.x = player.x, .y = player.y},
+                            THETA(player_direction + FOV / 2), 50);
   SDL_RenderDrawLine(renderer, player.x / MN_SCALE, player.y / MN_SCALE,
                      fovl.x / MN_SCALE, fovl.y / MN_SCALE);
   SDL_RenderDrawLine(renderer, player.x / MN_SCALE, player.y / MN_SCALE,
@@ -148,15 +148,23 @@ static void ray_render_minimap(SDL_Renderer *renderer) {
 }
 
 static void ray_render_game(SDL_Renderer *renderer) {
-  for (int d = player_direction - FOV / 2; d < player_direction + FOV / 2;
-       d++) {
-    Vec2 trace =
-        ray_trace(renderer, &(Vec2){.x = player.x, .y = player.y}, THETA(d));
-    Color *c = GET_CELL_COOR(trace.y, trace.x);
+  for (int i = 0; i < WINDOW_W; i++) {
+    // i == 0          : player_direction - FOV / 2;
+    // i == 1          : ?;
+    // i == WINDOW_W/2 : player_direction
+    // i == WINDOW_W   : player_direction + FOV / 2;
+    // i = player_direction - FOV / 2 + (i / WINDOW_W) * FOV
+    float a = player_direction - FOV / 2.0 + (i / (float)WINDOW_W) * FOV;
+    Vec2 cast =
+        ray_cast(renderer, &(Vec2){.x = player.x, .y = player.y}, THETAF(a));
+    SDL_RenderDrawLine(renderer, player.x / MN_SCALE, player.y / MN_SCALE,
+                       cast.x / MN_SCALE, cast.y / MN_SCALE);
+
+    Color *c = GET_CELL_COOR(cast.y, cast.x);
     if (c != NULL) {
+      float dist = cast.x - player.x + cast.y - player.y;
       SDL_SetRenderDrawColor(renderer, c->r, c->g, c->b, 255);
-      SDL_RenderDrawLine(renderer, (FOV - (float)d) / FOV * WINDOW_W, 0,
-                         (FOV - (float)d) / FOV * WINDOW_W, WINDOW_H);
+      SDL_RenderDrawLine(renderer, i, 0, i, WINDOW_H);
     }
   }
 }

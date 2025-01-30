@@ -22,6 +22,7 @@
 
 // Math
 #define THETA(n) ((n % 360) / 360.0 * 2 * M_PI)
+#define THETAF(n) (fmodf(n, 360) / 360.0 * 2 * M_PI)
 #define NCP 1
 #define VELOCITY 5
 
