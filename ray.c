@@ -6,8 +6,8 @@
 #include <math.h>
 #include <stdio.h>
 
+#include "aot.h"
 #include "ray.h"
-#include "raylib.h"
 
 static Texture TEX[TEX_MAX] = {0};
 static int TEX_C = 0;
@@ -25,7 +25,7 @@ static int RAY_MAP[CELL_COUNT] = {
 };
 
 void ray_load_textures(SDL_Window *window, SDL_Renderer *renderer) {
-  SDL_Texture *texture = IMG_LoadTexture(renderer, "./png/eagle.png");
+  SDL_Texture *texture = IMG_LoadTexture(renderer, "./png/aot.png");
   if (!texture) {
     fprintf(stderr, "Texture load fail");
     SDL_DestroyRenderer(renderer);

@@ -1,6 +1,6 @@
-# Raycast
+# Aot 2D
 
-From scratch using SDL2
+Raycasted using attack on titan, with SDL2
 
 ```shell
 $ make
