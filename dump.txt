@@ -1,0 +1,34 @@
+ray_render():
+  // floor
+  ray_color_set(renderer, &COLOR_DARKGRAY);
+  SDL_RenderFillRect(
+      renderer,
+      &(SDL_Rect){.x = 0, .y = WINDOW_H / 2, .w = WINDOW_W, .h = WINDOW_H / 2});
+
+  // walls
+  for (int i = 0; i < WINDOW_W; i++) {
+    float angle = player_direction - FOV / 2.0 + (i / (float)WINDOW_W) * FOV;
+    float angle_theta = THETAF(angle);
+    Vec2 cast = ray_cast(renderer, &(Vec2){.x = player.x, .y = player.y},
+                         angle_theta, -1);
+
+    int tex_offset = GET_CELL_COOR(cast.y, cast.x);
+    if (tex_offset != -1) {
+      float raw_dist = DISTF(cast, player);
+      float dist = raw_dist * cos(angle_theta);
+      float height = WINDOW_H * FAR_CLIPPING_PLANE / dist;
+      // ray_color_set(
+      //     renderer,
+      //     &(Color){.r = CLAMPF(c->r / dist * BRIGHTNESS_FACTOR, 0, c->r),
+      //              .g = CLAMPF(c->g / dist * BRIGHTNESS_FACTOR, 0, c->g),
+      //              .b = CLAMPF(c->b / dist * BRIGHTNESS_FACTOR, 0, c->b)});
+
+      SDL_Rect dst = {
+          .x = i,
+          .y = (WINDOW_H - height) / 2.0,
+          .w = i,
+          .h = height,
+      };
+      ray_render_tex(renderer, &TEX[tex_offset], &dst);
+    }
+  }

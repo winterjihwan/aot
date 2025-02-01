@@ -3,6 +3,7 @@
 #include "SDL_image.h"
 #include "SDL_render.h"
 #include "math.h"
+#include <math.h>
 #include <stdio.h>
 
 #include "ray.h"
@@ -24,7 +25,7 @@ static int RAY_MAP[CELL_COUNT] = {
 };
 
 void ray_load_textures(SDL_Window *window, SDL_Renderer *renderer) {
-  SDL_Texture *texture = IMG_LoadTexture(renderer, "./png/cat.png");
+  SDL_Texture *texture = IMG_LoadTexture(renderer, "./png/eagle.png");
   if (!texture) {
     fprintf(stderr, "Texture load fail");
     SDL_DestroyRenderer(renderer);
@@ -116,10 +117,10 @@ static void ray_render_tex(SDL_Renderer *renderer, Texture *tex,
   SDL_RenderCopy(renderer, tex->texture, &srcrect, dstrect);
 }
 
-static void ray_render_tex_strip(SDL_Renderer *renderer, Texture *tex, int x) {
-  SDL_Rect srcrect = {.x = 0, .y = 0, .w = x, .h = tex->h};
-  SDL_Rect dstrect = {.x = 0, .y = 0, .w = x, .h = WINDOW_H};
-  SDL_RenderCopy(renderer, tex->texture, &srcrect, &dstrect);
+static void ray_render_tex_strip(SDL_Renderer *renderer, Texture *tex,
+                                 float ratio, SDL_Rect *dstrect) {
+  SDL_Rect srcrect = {.x = ratio * tex->w, .y = 0, .w = 1, .h = tex->h};
+  SDL_RenderCopy(renderer, tex->texture, &srcrect, dstrect);
 }
 
 static void ray_render_map(SDL_Renderer *renderer) {
@@ -206,26 +207,34 @@ static void ray_render_world(SDL_Renderer *renderer) {
       &(SDL_Rect){.x = 0, .y = WINDOW_H / 2, .w = WINDOW_W, .h = WINDOW_H / 2});
 
   // walls
-  // for (int i = 0; i < WINDOW_W; i++) {
-  //   float angle = player_direction - FOV / 2.0 + (i / (float)WINDOW_W) * FOV;
-  //   float angle_theta = THETAF(angle);
-  //   Vec2 cast =
-  //       ray_cast(renderer, &(Vec2){.x = player.x, .y = player.y},
-  //       angle_theta);
-  //   Color *c = GET_CELL_COOR(cast.y, cast.x);
-  //   if (c != NULL) {
-  //     float raw_dist = DISTF(cast, player);
-  //     float dist = raw_dist * cos(angle_theta);
-  //     float height = WINDOW_H * FAR_CLIPPING_PLANE / dist;
-  //     ray_color_set(
-  //         renderer,
-  //         &(Color){.r = CLAMPF(c->r / dist * BRIGHTNESS_FACTOR, 0, c->r),
-  //                  .g = CLAMPF(c->g / dist * BRIGHTNESS_FACTOR, 0, c->g),
-  //                  .b = CLAMPF(c->b / dist * BRIGHTNESS_FACTOR, 0, c->b)});
-  //     SDL_RenderDrawLine(renderer, i, WINDOW_H / 2.0 - height / 2.0, i,
-  //                        WINDOW_H / 2.0 + height / 2.0);
-  //   }
-  // }
+  for (int i = 0; i < WINDOW_W; i++) {
+    float angle = player_direction - FOV / 2.0 + (i / (float)WINDOW_W) * FOV;
+    float angle_theta = THETAF(angle);
+    Vec2 cast =
+        ray_cast(renderer, &(Vec2){.x = player.x, .y = player.y}, angle_theta);
+    int tex_offset = GET_CELL_COOR(cast.y, cast.x);
+    if (tex_offset == -1) {
+      continue;
+    }
+    float raw_dist = DISTF(cast, player);
+    float dist = raw_dist * cos(angle_theta);
+    float height = WINDOW_H * FAR_CLIPPING_PLANE / dist;
+
+    float frac_x = fmodf(cast.x, CELL_W) / CELL_W;
+    float frac_y = fmodf(cast.y, CELL_H) / CELL_H;
+    SDL_Rect dst = {
+        .x = i,
+        .y = WINDOW_H / 2.0 - height / 2.0,
+        .w = 1,
+        .h = height,
+    };
+
+    if (frac_x < 1 / (float)CELL_W) {
+      ray_render_tex_strip(renderer, &TEX[tex_offset], frac_y, &dst);
+    } else {
+      ray_render_tex_strip(renderer, &TEX[tex_offset], frac_x, &dst);
+    }
+  }
 }
 
 void ray_render(SDL_Renderer *renderer, SDL_Event *event) {
