@@ -3,8 +3,8 @@
 #include <stdio.h>
 
 #include "SDL_render.h"
+#include "aot.h"
 #include "ray.h"
-#include "raylib.h"
 
 int main(void) {
   if (SDL_Init(SDL_INIT_VIDEO)) {
